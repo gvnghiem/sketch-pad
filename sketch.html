@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sketch Pad - Gvnghiem</title>
+    <link rel="stylesheet" href="sketch.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <button id="pen">Pen</button>
+            <button id="pencil">Pencil</button>
+            <button id="paint">Paint</button>
+            <button id="line">Line</button>
+            <button id="circle">Circle</button>
+            <button id="rect">Rectangle</button>
+            <button id="marquee">Marquee</button>
+            <button id="clear">Clear</button>
+            <label>Opacity: <input type="range" id="opacity" min="0" max="1" step="0.1" value="1"></label>
+            <label>Thickness: <input type="range" id="thickness" min="1" max="20" value="5"></label>
+            <label><input type="checkbox" id="grid"> Grid View</label>
+            <select id="layout">
+                <option value="blank">Blank</option>
+                <option value="two-column">Two-Column</option>
+            </select>
+        </div>
+        <canvas id="sketchCanvas"></canvas>
+    </div>
+    <script src="sketch.js"></script>
+</body>
+
+</html>
