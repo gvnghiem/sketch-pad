@@ -8,86 +8,498 @@ body {
     min-height: 100vh;
 }
 
-.container {
+.app-container {
+    display: flex;
+    max-width: 1200px;
+    min-height: 90vh;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Sidebar styling */
+.sidebar {
+    width: 150px;
+    background-color: #f5f5f5;
+    padding: 15px 10px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 20px;
+    gap: 20px;
 }
 
-.toolbar {
-    margin-bottom: 10px;
-    background-color: #ecf0f1;
+.left-sidebar {
+    border-right: 1px solid #ddd;
+}
+
+.right-sidebar {
+    border-left: 1px solid #ddd;
+}
+
+/* Toolbar container styling */
+.toolbar-container {
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     padding: 10px;
-    border-radius: 5px;
+}
+
+.toolbar-container h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+    color: #555;
+}
+
+/* Tool group styling */
+.tool-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+}
+
+.attribute-group {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Tool button styling with enhanced active state */
+.tool-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    border: 2px solid #ddd;
+    background-color: #fff;
+    display: flex;
     justify-content: center;
     align-items: center;
-}
-
-button {
-    padding: 5px 10px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 3px;
     cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
 }
 
-button:hover {
-    background-color: #2980b9;
+.tool-btn:hover {
+    background-color: #f5f5f5;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-button.active {
-    background-color: #e74c3c;
+.tool-btn.active {
+    background-color: #e7f5ff;
+    border-color: #1c7ed6;
+    color: #1c7ed6;
+    box-shadow: 0 0 0 2px rgba(28, 126, 214, 0.3);
 }
 
-label {
-    margin: 0 5px;
+/* Add a highlight indicator */
+.tool-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: #1c7ed6;
+    border-radius: 50%;
+}
+
+.tool-btn i {
+    font-size: 18px;
+}
+
+/* Custom icons for shapes without proper Font Awesome icons */
+.fa-pentagon:before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: currentColor;
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+}
+
+.fa-hexagon:before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: currentColor;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+/* Canvas container */
+.canvas-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background-color: #fff;
+}
+
+.canvas-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.canvas-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.canvas-options {
     display: flex;
     align-items: center;
+    gap: 15px;
 }
 
-#colorPalette div {
-    width: 20px;
-    height: 20px;
-    display: inline-block;
-    margin: 0 2px;
-    border-radius: 3px;
+.action-btn {
+    padding: 6px 12px;
+    background-color: #4dabf7;
+    color: white;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
-#colorPalette div:hover {
+.action-btn:hover {
+    background-color: #339af0;
+}
+
+#clear {
+    background-color: #ff6b6b;
+}
+
+#clear:hover {
+    background-color: #fa5252;
+}
+
+#save {
+    background-color: #51cf66;
+}
+
+#save:hover {
+    background-color: #40c057;
+}
+
+#undo {
+    background-color: #74b9ff;
+}
+
+#undo:hover {
+    background-color: #0984e3;
+}
+
+#redo {
+    background-color: #74b9ff;
+}
+
+#redo:hover {
+    background-color: #0984e3;
+}
+
+.action-btn.disabled {
+    background-color: #b2bec3 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.action-btn.disabled:hover {
+    background-color: #b2bec3 !important;
+    transform: none;
+}
+
+/* Canvas styling */
+#sketchCanvas {
+    flex: 1;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    background-color: white;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Color palette */
+.color-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.color-swatches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+}
+
+.color-swatch {
+    width: 25px;
+    height: 25px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid #ddd;
+}
+
+.color-swatch:hover {
     transform: scale(1.1);
 }
 
-#colorPalette div.active {
+.color-swatch.active {
     border: 2px solid #333;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
 }
 
-#hexInput {
-    padding: 3px;
-    border: 1px solid #333;
-    border-radius: 3px;
-    margin-left: 5px;
+.color-picker-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
 }
 
 #colorPicker {
-    margin-left: 5px;
-    padding: 0;
+    width: 100%;
+    height: 30px;
     border: none;
-    width: 30px;
-    height: 20px;
+    cursor: pointer;
+    padding: 0;
+}
+
+#hexInput {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Attribute styling */
+.attribute-group label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.attribute-group label span {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #555;
+}
+
+.attribute-group input[type="range"] {
+    width: 100%;
+    margin: 0;
+}
+
+/* Layout options */
+#layout {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .app-container {
+        flex-direction: column;
+        min-height: unset;
+    }
+
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 10px;
+    }
+
+    .left-sidebar, .right-sidebar {
+        border: none;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .toolbar-container {
+        min-width: 150px;
+    }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 576px) {
+    .tool-group {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .canvas-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .canvas-options {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .canvas-actions {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .action-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* For very small screens, show only icons */
+    .action-btn span {
+        display: none;
+    }
+
+    .action-btn i {
+        margin-right: 0;
+    }
+}
+
+/* Touch-specific styles */
+@media (pointer: coarse) {
+    .tool-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .tool-btn i {
+        font-size: 22px;
+    }
+
+    .action-btn {
+        padding: 8px 16px;
+        font-size: 16px;
+    }
+
+    .color-swatch {
+        width: 32px;
+        height: 32px;
+    }
+
+    input[type="range"] {
+        height: 24px;
+    }
+
+    #hexInput {
+        padding: 8px;
+        font-size: 16px;
+    }
+}
+
+/* Custom scrollbars for better UI */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* Better input range styling for cross-browser compatibility */
+input[type=range] {
+    -webkit-appearance: none;
+    margin: 10px 0;
+    width: 100%;
+    background: transparent;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: #e7e7e7;
+    border-radius: 3px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    height: 16px;
+    width: 16px;
+    border-radius: 8px;
+    background: #4dabf7;
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -5px;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: #e7e7e7;
+    border-radius: 3px;
+}
+
+input[type=range]::-moz-range-thumb {
+    height: 16px;
+    width: 16px;
+    border-radius: 8px;
+    background: #4dabf7;
     cursor: pointer;
 }
 
-#sketchCanvas {
-    border: 1px solid #333; /* Explicitly restored */
-    background-color: white; /* Default white background */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Shadow preserved */
-    width: 595px; /* Match JS canvas.width */
-    height: 842px; /* Match JS canvas.height */
+/* Checkbox styling */
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+}
+
+/* Transitions for smooth UI */
+* {
+    transition: background-color 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+/* Focus states for accessibility */
+button:focus, input:focus, select:focus {
+    outline: 2px solid #4dabf7;
+    outline-offset: 2px;
+}
+
+/* Button press effect */
+button:active {
+    transform: translateY(1px);
+}
+
+/* Responsive adjustments for action buttons */
+@media (max-width: 768px) {
+    .canvas-actions {
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        margin-bottom: 5px;
+        font-size: 0.9em;
+        padding: 5px 10px;
+    }
 }
