@@ -4,36 +4,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sketch Pad - Gvnghiem</title>
+    <title>Sketch Pad - Improved</title>
     <link rel="stylesheet" href="sketch.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
-    <div class="container">
-        <div class="toolbar">
-            <button id="pen">Pen</button>
-            <button id="pencil">Pencil</button>
-            <button id="paint">Paint</button>
-            <button id="line">Line</button>
-            <button id="circle">Circle</button>
-            <button id="rect">Rectangle</button>
-            <button id="marquee">Marquee</button>
-            <button id="clear">Clear</button>
-            <label>Opacity: <input type="range" id="opacity" min="0" max="1" step="0.1" value="1"></label>
-            <label>Thickness: <input type="range" id="thickness" min="1" max="20" value="5"></label>
-            <label><input type="checkbox" id="grid"> Grid View</label>
-            <select id="layout">
-                <option value="blank">Blank</option>
-                <option value="two-column">Two-Column</option>
-            </select>
-            <label>Color:
-                <div id="colorPalette" style="display: inline-block;"></div>
-                <input type="color" id="colorPicker" value="#000000">
-                <input type="text" id="hexInput" placeholder="#HEXCODE" value="#000000" style="width: 80px;">
-            </label>
+    <div class="app-container">
+        <!-- Left side toolbars -->
+        <div class="sidebar left-sidebar">
+            <!-- Draw tools -->
+            <div class="toolbar-container">
+                <h3>Draw</h3>
+                <div class="tool-group">
+                    <button id="pencil" class="tool-btn" title="Pencil">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button id="pen" class="tool-btn" title="Pen">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button id="marker" class="tool-btn" title="Marker">
+                        <i class="fas fa-marker"></i>
+                    </button>
+                    <button id="sprayPaint" class="tool-btn" title="Spray Paint">
+                        <i class="fas fa-spray-can"></i>
+                    </button>
+                    <button id="paintBrush" class="tool-btn" title="Paint Brush">
+                        <i class="fas fa-paint-brush"></i>
+                    </button>
+                    <button id="waterBrush" class="tool-btn" title="Water Paint Brush">
+                        <i class="fas fa-brush"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Objects tools -->
+            <div class="toolbar-container">
+                <h3>Objects</h3>
+                <div class="tool-group">
+                    <button id="line" class="tool-btn" title="Line">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button id="arrow" class="tool-btn" title="Arrow">
+                        <i class="fas fa-long-arrow-alt-right"></i>
+                    </button>
+                    <button id="circle" class="tool-btn" title="Circle">
+                        <i class="far fa-circle"></i>
+                    </button>
+                    <button id="rect" class="tool-btn" title="Rectangle">
+                        <i class="far fa-square"></i>
+                    </button>
+                    <button id="triangle" class="tool-btn" title="Triangle">
+                        <i class="fas fa-play" style="transform: rotate(90deg);"></i>
+                    </button>
+                    <button id="oval" class="tool-btn" title="Oval">
+                        <i class="fas fa-circle"></i>
+                    </button>
+                    <button id="pentagon" class="tool-btn" title="Pentagon">
+                        <i class="fas fa-pentagon"></i> <!-- Custom style will be applied -->
+                    </button>
+                    <button id="hexagon" class="tool-btn" title="Hexagon">
+                        <i class="fas fa-hexagon"></i> <!-- Custom style will be applied -->
+                    </button>
+                </div>
+            </div>
+
+            <!-- Other tools -->
+            <div class="toolbar-container">
+                <h3>Tools</h3>
+                <div class="tool-group">
+                    <button id="eraser" class="tool-btn" title="Eraser">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                    <button id="fillBucket" class="tool-btn" title="Fill Bucket">
+                        <i class="fas fa-fill-drip"></i>
+                    </button>
+                    <button id="marquee" class="tool-btn" title="Marquee Selection">
+                        <i class="fas fa-vector-square"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-        <canvas id="sketchCanvas"></canvas>
+
+        <!-- Canvas area -->
+        <div class="canvas-container">
+            <div class="canvas-header">
+                <div class="canvas-actions">
+                    <button id="undo" class="action-btn disabled" title="Undo">
+                        <i class="fas fa-undo"></i> Undo
+                    </button>
+                    <button id="redo" class="action-btn disabled" title="Redo">
+                        <i class="fas fa-redo"></i> Redo
+                    </button>
+                    <button id="clear" class="action-btn">
+                        <i class="fas fa-trash-alt"></i> Clear
+                    </button>
+                    <button id="save" class="action-btn">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                </div>
+                <div class="canvas-options">
+                    <label><input type="checkbox" id="grid"> Grid View</label>
+                    <select id="layout">
+                        <option value="blank">Blank</option>
+                        <option value="two-column">Two-Column</option>
+                    </select>
+                </div>
+            </div>
+            <canvas id="sketchCanvas"></canvas>
+        </div>
+
+        <!-- Right side attributes -->
+        <div class="sidebar right-sidebar">
+            <!-- Attributes -->
+            <div class="toolbar-container">
+                <h3>Attributes</h3>
+                <div class="attribute-group">
+                    <label>
+                        <span>Opacity: <span id="opacityValue">100%</span></span>
+                        <input type="range" id="opacity" min="0" max="1" step="0.05" value="1">
+                    </label>
+                    <label>
+                        <span>Thickness: <span id="thicknessValue">5px</span></span>
+                        <input type="range" id="thickness" min="1" max="30" value="5">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Color Palette -->
+            <div class="toolbar-container">
+                <h3>Color Palette</h3>
+                <div class="color-group">
+                    <div id="colorPalette" class="color-swatches"></div>
+                    <div class="color-picker-container">
+                        <input type="color" id="colorPicker" value="#000000">
+                        <input type="text" id="hexInput" placeholder="#HEXCODE" value="#000000">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    <script src="history.js"></script>
     <script src="sketch.js"></script>
 </body>
 

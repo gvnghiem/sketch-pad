@@ -174,6 +174,12 @@ function startDrawing(e) {
 
         // Save state after fill operation
         history.saveState();
+    } else if (tool === 'eraser') {
+        // Set up for eraser
+        mainCtx.beginPath();
+        mainCtx.moveTo(startX, startY);
+        mainCtx.lineCap = 'round';
+        mainCtx.lineJoin = 'round';
     } else if (toolCategories.objects.includes(tool)) {
         // For object tools, start preview mode
         // Set up common properties for preview
@@ -181,9 +187,6 @@ function startDrawing(e) {
         previewCtx.lineWidth = thickness;
         previewCtx.strokeStyle = currentColor;
         previewCtx.fillStyle = currentColor;
-
-        // Initial empty preview
-        // We don't call drawPreview() here because we don't have currentX/Y yet
     } else {
         // For drawing tools, set up initial path
         mainCtx.beginPath();
@@ -204,8 +207,21 @@ function draw(e) {
     previewCtx.globalAlpha = opacity;
     previewCtx.lineWidth = thickness;
     previewCtx.strokeStyle = currentColor;
-
-    if (tool === 'pen') {
+    if (tool === 'eraser') {
+        // For eraser, use destination-out composite operation to clear pixels
+        mainCtx.lineCap = 'round';
+        mainCtx.lineJoin = 'round';
+        // Save the current globalCompositeOperation
+        const currentCompositeOperation = mainCtx.globalCompositeOperation;
+        // Set to erase mode
+        mainCtx.globalCompositeOperation = 'destination-out';
+        // Draw the eraser path
+        mainCtx.lineTo(currentX, currentY);
+        mainCtx.stroke();
+        // Restore the previous composite operation
+        mainCtx.globalCompositeOperation = currentCompositeOperation;
+        renderCanvas();
+    } else if (tool === 'pen') {
         mainCtx.lineCap = 'round';
         mainCtx.lineTo(currentX, currentY);
         mainCtx.stroke();
