@@ -459,17 +459,26 @@ body {
     margin: 0;
 }
 
-/* Layout options */
+/* Enhanced styling for the layout dropdown */
 #layout {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
     padding: 6px 10px;
+    padding-right: 30px; /* Space for the custom arrow */
     border-radius: 4px;
     border: 1px solid #ddd;
     background-color: #fff;
     font-size: 14px;
     color: #333;
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="6" viewBox="0 0 12 6"><path fill="%23333" d="M0 0l6 6 6-6z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px;
 }
+
 #layout:hover {
     border-color: #aaa;
 }
@@ -480,9 +489,13 @@ body {
     box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
 }
 
+/* Hide the dropdown arrow in IE10+ */
+#layout::-ms-expand {
+    display: none;
+}
+
 /* Layout label styling */
 .layout-indicator {
-    position: absolute;
     top: 10px;
     right: 10px;
     background-color: rgba(0, 0, 0, 0.6);

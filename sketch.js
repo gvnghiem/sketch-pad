@@ -1684,9 +1684,38 @@ function colorToHex(color) {
 }
 
 // Initial setup
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM fully loaded');
 
+document.addEventListener('DOMContentLoaded', function() {
+    // Remove any attributes that might cause tooltips
+    const layoutDropdown = document.getElementById('layout');
+    if (layoutDropdown) {
+        // Remove title attribute
+        layoutDropdown.removeAttribute('title');
+
+        // Remove any other potential tooltip-causing attributes
+        layoutDropdown.removeAttribute('data-original-title');
+        layoutDropdown.removeAttribute('aria-describedby');
+
+        // Also remove tooltip attributes from options
+        const options = layoutDropdown.querySelectorAll('option');
+        options.forEach(option => {
+            option.removeAttribute('title');
+            option.removeAttribute('data-original-title');
+            option.removeAttribute('aria-describedby');
+        });
+    }
+
+    // Add a style tag to try to suppress tooltips via CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        #layout, #layout option {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    `;
+    document.head.appendChild(style);
     // Set initial layout to portrait
     layout = 'portrait';
 
@@ -1700,5 +1729,4 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     updateActiveTool();
     updateColorSwatches();
-
 });
