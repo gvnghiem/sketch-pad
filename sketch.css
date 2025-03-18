@@ -94,7 +94,6 @@ body {
     color: #1c7ed6;
     box-shadow: 0 0 0 2px rgba(28, 126, 214, 0.3);
 }
-
 /* Add a highlight indicator */
 .tool-btn.active::after {
     content: '';
@@ -110,6 +109,43 @@ body {
 
 .tool-btn i {
     font-size: 18px;
+}
+
+/* Style for disabled tool buttons */
+.tool-btn.disabled-tool {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-color: #f0f0f0;
+    border-color: #ccc;
+    box-shadow: none;
+}
+
+.tool-btn.disabled-tool:hover {
+    transform: none;
+    box-shadow: none;
+    background-color: #f0f0f0;
+}
+
+.tool-btn.disabled-tool::after {
+    content: 'Not available in pixel mode';
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 100;
+}
+
+.tool-btn.disabled-tool:hover::after {
+    opacity: 1;
 }
 
 /* Custom icons for shapes without proper Font Awesome icons */
@@ -138,6 +174,109 @@ body {
     flex-direction: column;
     padding: 15px;
     background-color: #fff;
+}
+
+/* Canvas container modifiers for different layouts */
+.canvas-container.portrait #sketchCanvas {
+    aspect-ratio: 1 / 1.414; /* A4 portrait ratio */
+}
+
+.canvas-container.landscape #sketchCanvas {
+    aspect-ratio: 1.414 / 1; /* A4 landscape ratio */
+}
+
+/* Grid checkbox styling */
+#grid {
+    cursor: pointer;
+}
+
+/* Add emphasis to the grid label in bit modes */
+.canvas-container.bit-mode + label[for="grid"] {
+    font-weight: bold;
+    color: #4dabf7;
+}
+
+/* Style for the grid overlay */
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Add a special style for pixel art modes to enhance the pixel art feel */
+.canvas-container.bit-mode {
+    background-color: #2c2c2c;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.canvas-container.bit-mode #sketchCanvas {
+    background-color: #f8f8f8;
+    box-shadow: 0 0 0 5px #444, 0 0 0 10px #222;
+    border-radius: 4px;
+}
+.canvas-container.bit-16 #sketchCanvas {
+    background-color: #f0f0f0;
+    box-shadow: 0 0 0 5px #444, 0 0 0 10px #222;
+    border-radius: 4px;
+}
+
+/* Special styling for the layout indicator in bit modes */
+.canvas-container.bit-8 .layout-indicator {
+    background-color: #8824b0;
+    color: white;
+    text-transform: uppercase;
+    font-family: monospace;
+    letter-spacing: 1px;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.canvas-container.bit-16 .layout-indicator {
+    background-color: #186d5d;
+    color: white;
+    font-family: monospace;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* Add a helpful pixel size indicator */
+.pixel-size-indicator {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+    z-index: 10;
+}
+
+.canvas-container.bit-8 .pixel-size-indicator::before {
+    content: "Pixel: 8×8";
+}
+
+.canvas-container.bit-16 .pixel-size-indicator::before {
+    content: "Pixel: 4×4";
+}
+
+/* Only show pixel indicator in bit modes */
+.pixel-size-indicator {
+    display: none;
+}
+
+.canvas-container.bit-mode .pixel-size-indicator {
+    display: block;
 }
 
 .canvas-header {
@@ -229,6 +368,7 @@ body {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    position: relative;
 }
 
 /* Color palette */
@@ -236,31 +376,42 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    width: 100%;
 }
 
 .color-swatches {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 5px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
+/* Make swatches fit within their grid cells */
 .color-swatch {
-    width: 25px;
-    height: 25px;
+    width: 100%;
+    height: 0;
+    padding-bottom: 100%; /* Create square aspect ratio */
     border-radius: 4px;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     border: 2px solid #ddd;
+    box-sizing: border-box;
+    position: relative;
 }
 
+/* Fix hover behavior to prevent overflow */
 .color-swatch:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
+    z-index: 1;
 }
 
 .color-swatch.active {
     border: 2px solid #333;
     transform: scale(1.05);
     box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+    z-index: 2;
 }
 
 .color-picker-container {
@@ -268,6 +419,7 @@ body {
     flex-direction: column;
     gap: 5px;
     margin-top: 8px;
+    width: 100%;
 }
 
 #colorPicker {
@@ -276,14 +428,17 @@ body {
     border: none;
     cursor: pointer;
     padding: 0;
+    box-sizing: border-box;
 }
-
 #hexInput {
     padding: 6px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
 }
+
 
 /* Attribute styling */
 .attribute-group label {
@@ -306,9 +461,42 @@ body {
 
 /* Layout options */
 #layout {
-    padding: 4px 8px;
+    padding: 6px 10px;
     border-radius: 4px;
     border: 1px solid #ddd;
+    background-color: #fff;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+#layout:hover {
+    border-color: #aaa;
+}
+
+#layout:focus {
+    border-color: #4dabf7;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
+}
+
+/* Layout label styling */
+.layout-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: none; /* Don't interfere with canvas interactions */
+    z-index: 10;
+    opacity: 0.7;
+}
+.canvas-container {
+    position: relative;
 }
 
 /* Responsive adjustments */
@@ -489,6 +677,53 @@ button:focus, input:focus, select:focus {
 /* Button press effect */
 button:active {
     transform: translateY(1px);
+}
+/* Zoom controls for bit modes */
+.zoom-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 5px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.canvas-container:hover .zoom-controls {
+    opacity: 1;
+}
+
+.zoom-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 18px;
+    transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+    background-color: #f5f5f5;
+    transform: translateY(-2px);
+}
+
+.zoom-level {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #555;
+    min-width: 40px;
 }
 
 /* Responsive adjustments for action buttons */

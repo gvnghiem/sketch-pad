@@ -1,9 +1,10 @@
 const canvas = document.getElementById('sketchCanvas');
 const ctx = canvas.getContext('2d');
 
-// Set canvas to A4 size (595x842px, scaled to fit screen)
-canvas.width = 595;
-canvas.height = 842;
+// Canvas defaults
+const DEFAULT_PORTRAIT_WIDTH = 595;  // A4 width in pixels
+const DEFAULT_PORTRAIT_HEIGHT = 842; // A4 height in pixels
+let canvasPixelSize = 1; // Default pixel size (for 8-bit and 16-bit modes)
 
 // Tool variables
 let tool = 'pen';
@@ -49,21 +50,6 @@ const colors = [
     '#FF00FF', '#00FFFF', '#000000', '#FFFFFF'
 ];
 
-colors.forEach(color => {
-    const swatch = document.createElement('div');
-    swatch.style.backgroundColor = color;
-    swatch.style.width = '20px';
-    swatch.style.height = '20px';
-    swatch.style.display = 'inline-block';
-    swatch.style.cursor = 'pointer';
-    swatch.style.margin = '2px';
-    swatch.addEventListener('click', () => {
-        currentColor = color;
-        updateColorSwatches();
-    });
-    document.getElementById('colorPalette').appendChild(swatch);
-});
-
 document.getElementById('colorPicker').addEventListener('input', (e) => {
     currentColor = e.target.value;
     updateColorSwatches();
@@ -83,10 +69,278 @@ document.getElementById('grid').addEventListener('change', (e) => {
     gridVisible = e.target.checked;
     drawCanvas();
 });
-document.getElementById('layout').addEventListener('change', (e) => {
-    layout = e.target.value;
-    drawCanvas();
+document.getElementById('layout').addEventListener('change', function(e) {
+    const newLayout = e.target.value;
+    console.log('Layout changed to:', newLayout);
+
+    // Only proceed if actually changing layouts
+    if (newLayout !== layout) {
+        if (confirm('Changing layout will reset your canvas. Continue?')) {
+            setCanvasLayout(newLayout);
+        } else {
+            // Reset dropdown to current layout if user cancels
+            e.target.value = layout;
+        }
+    }
 });
+
+// Function to update tool availability based on layout
+function updateToolAvailability() {
+    // Get all object tool buttons
+    const objectTools = toolCategories.objects;
+
+    // Enable or disable object tools based on layout
+    objectTools.forEach(toolId => {
+        const toolBtn = document.getElementById(toolId);
+        if (toolBtn) {
+            if (layout === '8-bit' || layout === '16-bit') {
+                // Disable object tools in bit modes
+                toolBtn.disabled = true;
+                toolBtn.classList.add('disabled-tool');
+                toolBtn.title = toolBtn.title + ' (Not available in pixel art mode)';
+            } else {
+                // Enable object tools in regular modes
+                toolBtn.disabled = false;
+                toolBtn.classList.remove('disabled-tool');
+                toolBtn.title = toolBtn.title.replace(' (Not available in pixel art mode)', '');
+            }
+        }
+    });
+
+    // If current tool is an object tool and we're in bit mode, switch to pen
+    if ((layout === '8-bit' || layout === '16-bit') && toolCategories.objects.includes(tool)) {
+        tool = 'pen'; // Switch to pen tool
+        updateActiveTool(); // Update the active tool indicator
+    }
+}
+
+function setCanvasLayout(layoutType) {
+    console.log('Setting layout to:', layoutType);
+
+    // Update layout variable
+    layout = layoutType;
+
+    // Remove previous layout classes from canvas container
+    const canvasContainer = document.querySelector('.canvas-container');
+    canvasContainer.classList.remove('portrait', 'landscape', 'bit-8', 'bit-16', 'two-column');
+
+    // Set canvas dimensions and properties based on layout
+    switch(layoutType) {
+        case 'portrait':
+            canvas.width = DEFAULT_PORTRAIT_WIDTH;
+            canvas.height = DEFAULT_PORTRAIT_HEIGHT;
+            canvasPixelSize = 1;
+            canvasContainer.classList.add('portrait');
+            disablePixelatedMode();
+            break;
+
+        case 'landscape':
+            canvas.width = DEFAULT_PORTRAIT_HEIGHT; // Swap dimensions
+            canvas.height = DEFAULT_PORTRAIT_WIDTH;
+            canvasPixelSize = 1;
+            canvasContainer.classList.add('landscape');
+            disablePixelatedMode();
+            break;
+
+        case '8-bit':
+            canvas.width = DEFAULT_PORTRAIT_WIDTH;
+            canvas.height = DEFAULT_PORTRAIT_HEIGHT;
+            canvasPixelSize = 8; // 8-bit style pixels
+            canvasContainer.classList.add('bit-8', 'bit-mode');
+            enablePixelatedMode();
+            // Automatically enable grid for pixel art modes
+            gridVisible = true;
+            const gridCheckbox = document.getElementById('grid');
+            if (gridCheckbox) {
+                gridCheckbox.checked = true;
+            }
+            break;
+
+        case '16-bit':
+            canvas.width = DEFAULT_PORTRAIT_WIDTH;
+            canvas.height = DEFAULT_PORTRAIT_HEIGHT;
+            canvasPixelSize = 4; // 16-bit style pixels
+            canvasContainer.classList.add('bit-16', 'bit-mode');
+            enablePixelatedMode();
+            // Automatically enable grid for pixel art modes
+            gridVisible = true;
+            const gridCheckbox16 = document.getElementById('grid');
+            if (gridCheckbox16) {
+                gridCheckbox16.checked = true;
+            }
+            break;
+
+        case 'two-column':
+            canvas.width = DEFAULT_PORTRAIT_WIDTH;
+            canvas.height = DEFAULT_PORTRAIT_HEIGHT;
+            canvasPixelSize = 1;
+            canvasContainer.classList.add('two-column');
+            disablePixelatedMode();
+            break;
+
+        default:
+            canvas.width = DEFAULT_PORTRAIT_WIDTH;
+            canvas.height = DEFAULT_PORTRAIT_HEIGHT;
+            canvasPixelSize = 1;
+            canvasContainer.classList.add('portrait');
+            disablePixelatedMode();
+    }
+
+    // Update layout indicator if it exists, or create it
+    let layoutIndicator = document.querySelector('.layout-indicator');
+    if (!layoutIndicator) {
+        layoutIndicator = document.createElement('div');
+        layoutIndicator.className = 'layout-indicator';
+        canvasContainer.appendChild(layoutIndicator);
+    }
+
+    // Update the indicator text
+    layoutIndicator.textContent = layoutType === 'two-column' ? 'Two-Column' :
+                                 layoutType.charAt(0).toUpperCase() + layoutType.slice(1);
+
+    // Resize all canvas layers
+    mainCanvas.width = canvas.width;
+    mainCanvas.height = canvas.height;
+    previewCanvas.width = canvas.width;
+    previewCanvas.height = canvas.height;
+
+    // Clear canvases
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+    // Reset history for the new layout
+    history = new CanvasHistory(mainCanvas);
+
+    // Update tool availability based on the new layout
+    updateToolAvailability();
+
+    // Update cursor style if needed
+    updateCursorStyle();
+
+    // Draw canvas with current layout
+    drawCanvas();
+
+    // Update pixel size indicator
+    updatePixelSizeIndicator();
+
+    console.log('Canvas dimensions set to:', canvas.width, 'x', canvas.height);
+    console.log('Pixel size set to:', canvasPixelSize);
+}
+
+function enablePixelatedMode() {
+    // Set canvas rendering to be pixelated
+    canvas.style.imageRendering = 'pixelated';
+    mainCanvas.style.imageRendering = 'pixelated';
+    previewCanvas.style.imageRendering = 'pixelated';
+
+    // Set the context to use nearest-neighbor interpolation
+    ctx.imageSmoothingEnabled = false;
+    mainCtx.imageSmoothingEnabled = false;
+    previewCtx.imageSmoothingEnabled = false;
+
+    // Add zoom controls for bit modes if they don't exist
+    const canvasContainer = document.querySelector('.canvas-container');
+    if (!document.querySelector('.zoom-controls')) {
+        const zoomControls = document.createElement('div');
+        zoomControls.className = 'zoom-controls';
+        zoomControls.innerHTML = `
+            <button class="zoom-btn zoom-in" title="Zoom In">+</button>
+            <div class="zoom-level">100%</div>
+            <button class="zoom-btn zoom-out" title="Zoom Out">-</button>
+        `;
+        canvasContainer.appendChild(zoomControls);
+
+        // Add event listeners for zoom controls
+        document.querySelector('.zoom-in').addEventListener('click', () => {
+            zoomCanvas(1.2); // Zoom in
+        });
+        document.querySelector('.zoom-out').addEventListener('click', () => {
+            zoomCanvas(0.8); // Zoom out
+        });
+    }
+}
+
+function disablePixelatedMode() {
+    // Set canvas rendering to smooth (default)
+    canvas.style.imageRendering = 'auto';
+    mainCanvas.style.imageRendering = 'auto';
+    previewCanvas.style.imageRendering = 'auto';
+
+    // Enable smoothing
+    ctx.imageSmoothingEnabled = true;
+    mainCtx.imageSmoothingEnabled = true;
+    previewCtx.imageSmoothingEnabled = true;
+
+    // Remove zoom controls if they exist
+    const zoomControls = document.querySelector('.zoom-controls');
+    if (zoomControls) {
+        zoomControls.remove();
+    }
+}
+
+// Modify the draw function to handle pixelated modes
+function snapToPixelGrid(x, y) {
+    if (canvasPixelSize <= 1) return { x, y };
+
+    // Snap coordinates to the pixel grid
+    return {
+        x: Math.floor(x / canvasPixelSize) * canvasPixelSize,
+        y: Math.floor(y / canvasPixelSize) * canvasPixelSize
+    };
+}
+
+// Add or update pixel size indicator for bit modes
+function updatePixelSizeIndicator() {
+    const canvasContainer = document.querySelector('.canvas-container');
+    let pixelIndicator = document.querySelector('.pixel-size-indicator');
+
+    // Create the indicator if it doesn't exist
+    if (!pixelIndicator) {
+        pixelIndicator = document.createElement('div');
+        pixelIndicator.className = 'pixel-size-indicator';
+        canvasContainer.appendChild(pixelIndicator);
+    }
+
+    // Show appropriate indicator text based on mode
+    if (layout === '8-bit') {
+        pixelIndicator.textContent = `Pixel: 8×8`;
+    } else if (layout === '16-bit') {
+        pixelIndicator.textContent = `Pixel: 4×4`;
+    }
+}
+
+
+// Zoom canvas for bit modes
+let currentZoom = 1.0;
+function zoomCanvas(factor) {
+    currentZoom *= factor;
+    // Limit zoom range
+    currentZoom = Math.max(0.5, Math.min(currentZoom, 5.0));
+
+    const canvasDisplay = document.getElementById('sketchCanvas');
+    canvasDisplay.style.transform = `scale(${currentZoom})`;
+    canvasDisplay.style.transformOrigin = 'center';
+
+    // Update zoom level display
+    const zoomLevel = document.querySelector('.zoom-level');
+    if (zoomLevel) {
+        zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+    }
+}
+
+// Function to handle drawing in pixelated mode
+function drawPixelatedPoint(x, y, color) {
+    // Snap to pixel grid
+    const snappedX = Math.floor(x / canvasPixelSize) * canvasPixelSize;
+    const snappedY = Math.floor(y / canvasPixelSize) * canvasPixelSize;
+
+    // Set fill color
+    mainCtx.fillStyle = color;
+
+    // Draw the pixel
+    mainCtx.fillRect(snappedX, snappedY, canvasPixelSize, canvasPixelSize);
+}
 
 function updateActiveTool() {
     tools.forEach(t => {
@@ -144,10 +398,51 @@ function handleTouchEnd(e) {
 
 function getCanvasCoordinates(e) {
     const rect = canvas.getBoundingClientRect();
-    return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-    };
+
+    // Calculate actual position accounting for any scaling
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    // Get the precise cursor position
+    let x = (e.clientX - rect.left) * scaleX;
+    let y = (e.clientY - rect.top) * scaleY;
+
+    // Handle pixel snapping for 8-bit and 16-bit modes
+    if (layout === '8-bit' || layout === '16-bit') {
+        x = Math.floor(x / canvasPixelSize) * canvasPixelSize;
+        y = Math.floor(y / canvasPixelSize) * canvasPixelSize;
+    }
+
+    return { x, y };
+}
+
+// Update cursor styles based on the current tool
+function updateCursorStyle() {
+    // Set cursor based on current tool
+    if (toolCategories.draw.includes(tool)) {
+        // Drawing tools
+        canvas.style.cursor = 'crosshair';
+    } else if (tool === 'eraser') {
+        // Eraser
+        canvas.style.cursor = 'crosshair';
+    } else if (tool === 'fillBucket') {
+        // Fill bucket
+        canvas.style.cursor = 'pointer';
+    } else if (toolCategories.objects.includes(tool)) {
+        // Shape tools
+        canvas.style.cursor = 'crosshair';
+    } else if (tool === 'marquee') {
+        // Selection tool
+        canvas.style.cursor = 'crosshair';
+    } else {
+        // Default
+        canvas.style.cursor = 'default';
+    }
+
+    // Special handling for bit modes
+    if (layout === '8-bit' || layout === '16-bit') {
+        canvas.style.cursor = 'crosshair';
+    }
 }
 
 function startDrawing(e) {
@@ -204,49 +499,320 @@ function draw(e) {
     mainCtx.globalAlpha = opacity;
     mainCtx.lineWidth = thickness;
     mainCtx.strokeStyle = currentColor;
+    mainCtx.fillStyle = currentColor;
     previewCtx.globalAlpha = opacity;
     previewCtx.lineWidth = thickness;
     previewCtx.strokeStyle = currentColor;
-    if (tool === 'eraser') {
-        // For eraser, use destination-out composite operation to clear pixels
-        mainCtx.lineCap = 'round';
-        mainCtx.lineJoin = 'round';
-        // Save the current globalCompositeOperation
-        const currentCompositeOperation = mainCtx.globalCompositeOperation;
-        // Set to erase mode
-        mainCtx.globalCompositeOperation = 'destination-out';
-        // Draw the eraser path
-        mainCtx.lineTo(currentX, currentY);
-        mainCtx.stroke();
-        // Restore the previous composite operation
-        mainCtx.globalCompositeOperation = currentCompositeOperation;
-        renderCanvas();
-    } else if (tool === 'pen') {
-        mainCtx.lineCap = 'round';
-        mainCtx.lineTo(currentX, currentY);
-        mainCtx.stroke();
-        renderCanvas();
-    } else if (tool === 'pencil') {
-        mainCtx.lineCap = 'round';
-        mainCtx.globalAlpha = opacity * 0.5;
-        mainCtx.lineTo(currentX, currentY);
-        mainCtx.stroke();
-        renderCanvas();
-    } else if (tool === 'paint') {
-        mainCtx.lineCap = 'round';
-        mainCtx.lineWidth = thickness * 2;
-        mainCtx.lineTo(currentX, currentY);
-        mainCtx.stroke();
-        renderCanvas();
-    } else if (tool === 'line' || tool === 'circle' || tool === 'rect' || tool === 'arrow' || tool === 'triangle' || tool === 'oval' || tool === 'hexagon' || tool === 'pentagon') {
-        // Use preview canvas for shape drawing
-        drawPreview();
-    } else if (tool === 'marquee') {
+    previewCtx.fillStyle = currentColor;
+
+    // Shape tools (like line, circle, rect) always use preview regardless of layout
+    if (tool === 'line' || tool === 'circle' || tool === 'rect' ||
+        tool === 'arrow' || tool === 'triangle' || tool === 'oval' ||
+        tool === 'hexagon' || tool === 'pentagon') {
+
+        // For 8-bit and 16-bit modes, use pixelated preview
+        if (layout === '8-bit' || layout === '16-bit') {
+            drawPreviewPixelated();
+        } else {
+            drawPreview();
+        }
+        return; // Exit early after handling shape tools
+    }
+
+    // Handle marquee selection tool
+    if (tool === 'marquee') {
         selectedArea.width = currentX - startX;
         selectedArea.height = currentY - startY;
         drawPreview();
+        return; // Exit early
     }
+
+    // Handle different drawing tools based on layout
+    if (layout === '8-bit' || layout === '16-bit') {
+        // Pixel art mode drawing tools
+        if (tool === 'eraser') {
+            // Eraser in pixel mode just clears the pixel
+            const snappedX = Math.floor(currentX / canvasPixelSize) * canvasPixelSize;
+            const snappedY = Math.floor(currentY / canvasPixelSize) * canvasPixelSize;
+            mainCtx.clearRect(snappedX, snappedY, canvasPixelSize, canvasPixelSize);
+        }
+        else if (tool === 'fillBucket') {
+            // Fill operation is triggered on mouse down, not here
+        }
+        else if (tool === 'pen' || tool === 'pencil' || tool === 'marker' ||
+                 tool === 'paintBrush' || tool === 'sprayPaint' || tool === 'waterBrush') {
+            // Draw line between last and current point to ensure continuous drawing
+            const points = getLinePoints(lastX, lastY, currentX, currentY);
+            for (const point of points) {
+                const px = Math.floor(point.x / canvasPixelSize) * canvasPixelSize;
+                const py = Math.floor(point.y / canvasPixelSize) * canvasPixelSize;
+                mainCtx.fillRect(px, py, canvasPixelSize, canvasPixelSize);
+            }
+
+            // Update last position
+            lastX = currentX;
+            lastY = currentY;
+        }
+    }
+    else {
+        // Regular drawing mode
+        if (tool === 'eraser') {
+            // For eraser, use destination-out composite operation to clear pixels
+            mainCtx.lineCap = 'round';
+            mainCtx.lineJoin = 'round';
+            // Save the current globalCompositeOperation
+            const currentCompositeOperation = mainCtx.globalCompositeOperation;
+            // Set to erase mode
+            mainCtx.globalCompositeOperation = 'destination-out';
+            // Draw the eraser path
+            mainCtx.lineTo(currentX, currentY);
+            mainCtx.stroke();
+            // Restore the previous composite operation
+            mainCtx.globalCompositeOperation = currentCompositeOperation;
+        }
+        else if (tool === 'pen') {
+            mainCtx.lineCap = 'round';
+            mainCtx.lineTo(currentX, currentY);
+            mainCtx.stroke();
+        }
+        else if (tool === 'pencil') {
+            mainCtx.lineCap = 'round';
+            mainCtx.globalAlpha = opacity * 0.5;
+            mainCtx.lineTo(currentX, currentY);
+            mainCtx.stroke();
+        }
+        else if (tool === 'paintBrush') {
+            mainCtx.lineCap = 'round';
+            mainCtx.lineWidth = thickness * 2;
+            mainCtx.lineTo(currentX, currentY);
+            mainCtx.stroke();
+        }
+        else if (tool === 'marker') {
+            mainCtx.lineCap = 'square';
+            mainCtx.globalAlpha = 0.5;
+            mainCtx.lineTo(currentX, currentY);
+            mainCtx.stroke();
+        }
+        else if (tool === 'sprayPaint') {
+            const density = thickness * 2;
+            const radius = thickness * 2;
+
+            for (let i = 0; i < density; i++) {
+                const offsetX = getRandomInt(-radius, radius);
+                const offsetY = getRandomInt(-radius, radius);
+
+                if (offsetX * offsetX + offsetY * offsetY <= radius * radius) {
+                    const x = currentX + offsetX;
+                    const y = currentY + offsetY;
+
+                    mainCtx.beginPath();
+                    mainCtx.fillStyle = currentColor;
+                    mainCtx.globalAlpha = opacity * 0.3;
+                    mainCtx.arc(x, y, 1, 0, Math.PI * 2);
+                    mainCtx.fill();
+                }
+            }
+        }
+        else if (tool === 'waterBrush') {
+            mainCtx.lineCap = 'round';
+            mainCtx.lineWidth = thickness;
+
+            const gradient = mainCtx.createLinearGradient(lastX, lastY, currentX, currentY);
+            gradient.addColorStop(0, currentColor);
+            gradient.addColorStop(1, currentColor + '80');
+
+            mainCtx.strokeStyle = gradient;
+            mainCtx.globalAlpha = opacity * 0.7;
+            mainCtx.lineTo(currentX, currentY);
+            mainCtx.stroke();
+
+            lastX = currentX;
+            lastY = currentY;
+        }
+    }
+
+    // Update display
+    renderCanvas();
 }
+
+// Regular preview function for shape tools
+function drawPreview() {
+    // Clear the preview canvas
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+    // Draw existing content from main canvas
+    previewCtx.drawImage(mainCanvas, 0, 0);
+
+    // Set common properties
+    previewCtx.globalAlpha = opacity;
+    previewCtx.lineWidth = thickness;
+    previewCtx.strokeStyle = currentColor;
+    previewCtx.fillStyle = currentColor;
+
+    // Only draw if we have valid coordinates
+    if (startX !== null && startY !== null && currentX !== null && currentY !== null) {
+        // Draw preview of current shape
+        if (tool === 'line') {
+            previewCtx.beginPath();
+            previewCtx.moveTo(startX, startY);
+            previewCtx.lineTo(currentX, currentY);
+            previewCtx.stroke();
+        } else if (tool === 'arrow') {
+            drawArrow(previewCtx, startX, startY, currentX, currentY);
+        } else if (tool === 'circle') {
+            const radius = Math.sqrt((currentX - startX) ** 2 + (currentY - startY) ** 2);
+            previewCtx.beginPath();
+            previewCtx.arc(startX, startY, radius, 0, Math.PI * 2);
+            previewCtx.stroke();
+        } else if (tool === 'rect') {
+            previewCtx.beginPath();
+            previewCtx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+        } else if (tool === 'triangle') {
+            drawTriangle(previewCtx, startX, startY, currentX, currentY);
+        } else if (tool === 'oval') {
+            drawOval(previewCtx, startX, startY, currentX, currentY);
+        } else if (tool === 'pentagon') {
+            drawPolygon(previewCtx, startX, startY, currentX, currentY, 5);
+        } else if (tool === 'hexagon') {
+            drawPolygon(previewCtx, startX, startY, currentX, currentY, 6);
+        } else if (tool === 'marquee' && selectedArea) {
+            previewCtx.setLineDash([5, 5]);
+            previewCtx.strokeRect(startX, startY, selectedArea.width, selectedArea.height);
+            previewCtx.setLineDash([]);
+        }
+    }
+
+    // Apply layout and grid to preview
+    applyLayoutAndGrid(previewCtx);
+
+    // Render the preview to main canvas
+    renderCanvas(true);
+}
+// Draw pixelated preview for shape tools in bit modes
+function drawPreviewPixelated() {
+    // Clear the preview canvas
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+    // Draw existing content from main canvas
+    previewCtx.drawImage(mainCanvas, 0, 0);
+
+    // Snapped coordinates for bit modes
+    const snapStartX = Math.floor(startX / canvasPixelSize) * canvasPixelSize;
+    const snapStartY = Math.floor(startY / canvasPixelSize) * canvasPixelSize;
+    const snapEndX = Math.floor(currentX / canvasPixelSize) * canvasPixelSize;
+    const snapEndY = Math.floor(currentY / canvasPixelSize) * canvasPixelSize;
+
+    // Set common properties
+    previewCtx.fillStyle = currentColor;
+
+    // Draw preview based on tool
+    if (tool === 'line') {
+        const points = getLinePoints(snapStartX, snapStartY, snapEndX, snapEndY);
+        for (const point of points) {
+            const px = Math.floor(point.x / canvasPixelSize) * canvasPixelSize;
+            const py = Math.floor(point.y / canvasPixelSize) * canvasPixelSize;
+            previewCtx.fillRect(px, py, canvasPixelSize, canvasPixelSize);
+        }
+    }
+    else if (tool === 'rect') {
+        // Draw rectangle border using individual pixels
+        const width = snapEndX - snapStartX;
+        const height = snapEndY - snapStartY;
+
+        // Top and bottom edges
+        for (let x = 0; x <= Math.abs(width); x += canvasPixelSize) {
+            previewCtx.fillRect(
+                snapStartX + (width >= 0 ? x : -x),
+                snapStartY,
+                canvasPixelSize,
+                canvasPixelSize
+            );
+            previewCtx.fillRect(
+                snapStartX + (width >= 0 ? x : -x),
+                snapStartY + height - (height >= 0 ? 0 : canvasPixelSize),
+                canvasPixelSize,
+                canvasPixelSize
+            );
+        }
+
+        // Left and right edges
+        for (let y = canvasPixelSize; y < Math.abs(height); y += canvasPixelSize) {
+            previewCtx.fillRect(
+                snapStartX,
+                snapStartY + (height >= 0 ? y : -y),
+                canvasPixelSize,
+                canvasPixelSize
+            );
+            previewCtx.fillRect(
+                snapStartX + width - (width >= 0 ? 0 : canvasPixelSize),
+                snapStartY + (height >= 0 ? y : -y),
+                canvasPixelSize,
+                canvasPixelSize
+            );
+        }
+    }
+    else if (tool === 'circle') {
+        // Draw circle using Bresenham's circle algorithm
+        const radius = Math.round(Math.sqrt((snapEndX - snapStartX) ** 2 + (snapEndY - snapStartY) ** 2) / canvasPixelSize) * canvasPixelSize;
+        const centerX = snapStartX;
+        const centerY = snapStartY;
+
+        // Draw circle using pixelated points
+        const points = getCirclePoints(centerX, centerY, radius);
+        for (const point of points) {
+            previewCtx.fillRect(
+                Math.floor(point.x / canvasPixelSize) * canvasPixelSize,
+                Math.floor(point.y / canvasPixelSize) * canvasPixelSize,
+                canvasPixelSize,
+                canvasPixelSize
+            );
+        }
+    }
+    // Add more shape drawing for pixel art as needed
+
+    // Apply layout and grid to preview
+    applyLayoutAndGrid(previewCtx);
+
+    // Render the preview
+    renderCanvas(true);
+}
+
+// Get points along a circle using Bresenham's circle algorithm
+function getCirclePoints(centerX, centerY, radius) {
+    const points = [];
+    let x = 0;
+    let y = radius;
+    let d = 3 - 2 * radius;
+
+    // Helper to add all 8 symmetric points
+    function addCirclePoints(cx, cy, x, y) {
+        points.push({x: cx + x, y: cy + y});
+        points.push({x: cx - x, y: cy + y});
+        points.push({x: cx + x, y: cy - y});
+        points.push({x: cx - x, y: cy - y});
+        points.push({x: cx + y, y: cy + x});
+        points.push({x: cx - y, y: cy + x});
+        points.push({x: cx + y, y: cy - x});
+        points.push({x: cx - y, y: cy - x});
+    }
+
+    // Initial points
+    addCirclePoints(centerX, centerY, x, y);
+
+    while (y >= x) {
+        x++;
+        if (d > 0) {
+            y--;
+            d = d + 4 * (x - y) + 10;
+        } else {
+            d = d + 4 * x + 6;
+        }
+        addCirclePoints(centerX, centerY, x, y);
+    }
+
+    return points;
+}
+
 
 // Drawing helper functions for complex shapes
 function drawArrow(ctx, fromX, fromY, toX, toY) {
@@ -748,29 +1314,131 @@ function saveCanvas() {
         document.body.appendChild(formatDialog);
     }
 }
+// Modified draw function to handle the pixel grid
+function drawPixelatedLine(startX, startY, endX, endY) {
+    // For 8-bit or 16-bit modes, we draw "blocky" pixels
+    const points = getLinePoints(startX, startY, endX, endY);
 
+    for (const point of points) {
+        // Draw a rectangle for each pixel
+        mainCtx.fillRect(
+            Math.floor(point.x / canvasPixelSize) * canvasPixelSize,
+            Math.floor(point.y / canvasPixelSize) * canvasPixelSize,
+            canvasPixelSize,
+            canvasPixelSize
+        );
+    }
+}
+
+// Get points along a line using Bresenham's line algorithm
+function getLinePoints(x0, y0, x1, y1) {
+    const points = [];
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? canvasPixelSize : -canvasPixelSize;
+    const sy = y0 < y1 ? canvasPixelSize : -canvasPixelSize;
+    let err = dx - dy;
+
+    let currentX = x0;
+    let currentY = y0;
+
+    while (true) {
+        points.push({x: currentX, y: currentY});
+
+        if (Math.abs(currentX - x1) < canvasPixelSize && Math.abs(currentY - y1) < canvasPixelSize) break;
+
+        const e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            currentX += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            currentY += sy;
+        }
+    }
+
+    return points;
+}
+
+// Modified fill area for pixelated modes
+function pixelatedFill(x, y) {
+    // For pixelated modes, we want to fill in blocks rather than individual pixels
+    x = Math.floor(x / canvasPixelSize) * canvasPixelSize;
+    y = Math.floor(y / canvasPixelSize) * canvasPixelSize;
+
+    // Standard fill operation with adjusted coordinates
+    fillArea(x, y);
+}
+
+// Update the applyLayoutAndGrid function to use different grid sizes based on layout
 function applyLayoutAndGrid(targetCtx) {
-    // Draw layout
+    // Draw layout specifics
     if (layout === 'two-column') {
         targetCtx.fillStyle = '#f0f0f0';
         targetCtx.fillRect(canvas.width / 2 - 2, 0, 4, canvas.height);
     }
 
-    // Draw grid
+    // Draw grid if visible
     if (gridVisible) {
-        targetCtx.strokeStyle = '#ddd';
-        targetCtx.lineWidth = 1;
-        for (let x = 0; x < canvas.width; x += 20) {
-            targetCtx.beginPath();
-            targetCtx.moveTo(x, 0);
-            targetCtx.lineTo(x, canvas.height);
-            targetCtx.stroke();
+        if (layout === '8-bit') {
+            // Draw 8-bit grid (larger pixels)
+            targetCtx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+            targetCtx.lineWidth = 1;
+
+            // Draw vertical grid lines
+            for (let x = 0; x <= canvas.width; x += canvasPixelSize) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(x, 0);
+                targetCtx.lineTo(x, canvas.height);
+                targetCtx.stroke();
+            }
+
+            // Draw horizontal grid lines
+            for (let y = 0; y <= canvas.height; y += canvasPixelSize) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(0, y);
+                targetCtx.lineTo(canvas.width, y);
+                targetCtx.stroke();
+            }
         }
-        for (let y = 0; y < canvas.height; y += 20) {
-            targetCtx.beginPath();
-            targetCtx.moveTo(0, y);
-            targetCtx.lineTo(canvas.width, y);
-            targetCtx.stroke();
+        else if (layout === '16-bit') {
+            // Draw 16-bit grid (medium pixels)
+            targetCtx.strokeStyle = 'rgba(200, 200, 200, 0.2)';
+            targetCtx.lineWidth = 0.5;
+
+            // Draw vertical grid lines
+            for (let x = 0; x <= canvas.width; x += canvasPixelSize) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(x, 0);
+                targetCtx.lineTo(x, canvas.height);
+                targetCtx.stroke();
+            }
+
+            // Draw horizontal grid lines
+            for (let y = 0; y <= canvas.height; y += canvasPixelSize) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(0, y);
+                targetCtx.lineTo(canvas.width, y);
+                targetCtx.stroke();
+            }
+        }
+        else {
+            // Draw standard grid for other layouts
+            targetCtx.strokeStyle = '#ddd';
+            targetCtx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 20) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(x, 0);
+                targetCtx.lineTo(x, canvas.height);
+                targetCtx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 20) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(0, y);
+                targetCtx.lineTo(canvas.width, y);
+                targetCtx.stroke();
+            }
         }
     }
 }
@@ -906,9 +1574,23 @@ function setupEventListeners() {
 
     const layoutSelect = document.getElementById('layout');
     if (layoutSelect) {
+        // Update initial value
+        layoutSelect.value = layout;
+
+        // Add change event listener
         layoutSelect.addEventListener('change', (e) => {
-            layout = e.target.value;
-            drawCanvas();
+            const newLayout = e.target.value;
+
+            // Only apply changes if the layout actually changed
+            if (newLayout !== layout) {
+                // Confirm layout change as it will clear the canvas
+                if (confirm('Changing layout will clear your current drawing. Continue?')) {
+                    setCanvasLayout(newLayout);
+                } else {
+                    // Reset dropdown to current layout if user cancels
+                    layoutSelect.value = layout;
+                }
+            }
         });
     }
 
@@ -942,6 +1624,7 @@ function setupEventListeners() {
     if (layoutSelect) layoutSelect.value = layout;
 }
 
+// Add this to your existing updateActiveTool function
 function updateActiveTool() {
     console.log('Updating active tool:', tool);
 
@@ -961,7 +1644,11 @@ function updateActiveTool() {
     } else {
         console.warn(`Could not find button element for tool: ${tool}`);
     }
+
+    // Update cursor style based on the selected tool
+    updateCursorStyle();
 }
+
 
 function updateColorSwatches() {
     // Update active swatch
@@ -1000,11 +1687,18 @@ function colorToHex(color) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded');
 
+    // Set initial layout to portrait
+    layout = 'portrait';
+
     // Initialize history manager with mainCanvas
     history = new CanvasHistory(mainCanvas);
 
+    // Initialize the canvas with the default layout
+    setCanvasLayout(layout);
+
+    // Setup all event listeners
     setupEventListeners();
     updateActiveTool();
     updateColorSwatches();
-    drawCanvas();
+
 });
